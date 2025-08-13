@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Data Interactive Graph</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon {
+            width: 32px;
+            height: 32px;
+            color: #667eea;
+        }
+
+        .upload-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #10b981;
+            font-weight: 500;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 24px;
+        }
+
+        .sidebar {
+            width: 350px;
+            flex-shrink: 0;
+        }
+
+        .sidebar .card {
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .controls-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .slider-container {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .slider-label span:first-child {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .slider-value {
+            font-family: monospace;
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .slider-limits {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .info-box {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .info-box.blue {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+        }
+
+        .info-box.green {
+            background: #d1fae5;
+            border: 1px solid #6ee7b7;
+        }
+
+        .info-box-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .info-box-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .info-box-range {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .y-axis-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .y-axis-controls label {
+            font-size: 11px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .y-axis-controls input[type="number"] {
+            width: 80px;
+            padding: 4px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .y-axis-controls input[type="checkbox"] {
+            margin-right: 4px;
+        }
+
+        .auto-checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            color: #374151;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .graph-container {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 600px;
+            margin-top: 20px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: 100% !important;
+        }
+
+        .empty-state {
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            color: #d1d5db;
+        }
+
+        .processing {
+            color: #667eea;
+            font-weight: 500;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Scrollbar styling */
+        .sidebar .card::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar .card::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .sidebar .card::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+
+        .sidebar .card::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+            
+            .sidebar .card {
+                position: relative;
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Card -->
+        <div class="card">
+            <div class="header">
+                <h1>
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                    Business Data Interactive Graph
+                </h1>
+            </div>
+            
+            <div class="upload-section">
+                <label for="file-input">
+                    <button class="upload-btn" id="upload-btn" onclick="document.getElementById('file-input').click()">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        Upload Excel File
+                    </button>
+                </label>
+                <input type="file" id="file-input" accept=".xlsx,.xls">
+                
+                <div id="file-info" class="file-info" style="display: none;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span id="file-name"></span>
+                </div>
+                
+                <div id="processing" class="processing" style="display: none;">Processing...</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content" class="main-content" style="display: none;">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="card">
+                    <div class="controls-header">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                        </svg>
+                        Variable Controls
+                    </div>
+                    
+                    <div id="sliders-container"></div>
+                    
+                    <div id="independent-info" class="info-box blue" style="display: none;">
+                        <div class="info-box-title">Independent Variable (X-axis):</div>
+                        <div id="independent-name" class="info-box-value"></div>
+                        <div id="independent-range" class="info-box-range"></div>
+                    </div>
+                    
+                    <div id="dependent-info" class="info-box green" style="display: none;">
+                        <div class="info-box-title">Dependent Variable (Y-axis):</div>
+                        <div id="dependent-name" class="info-box-value"></div>
+                        <div class="y-axis-controls">
+                            <label class="auto-checkbox-label">
+                                <input type="checkbox" id="y-axis-auto" checked>
+                                Auto
+                            </label>
+                            <label>Min:</label>
+                            <input type="number" id="y-axis-min" step="any" disabled>
+                            <label>Max:</label>
+                            <input type="number" id="y-axis-max" step="any" disabled>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graph Container -->
+            <div class="graph-container">
+                <div class="card">
+                    <h2 style="font-size: 20px; font-weight: 600; color: #1a202c; margin-bottom: 20px;">Interactive Graph</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let fileData = null;
+        let variableNames = {};
+        let variables = {};
+        let variableMin = {};
+        let variableMax = {};
+        let calculationNames = {};
+        let calculationFormulas = {};
+        let independentIndex = null;
+        let dependentIndex = null;
+        let currentVariables = {};
+        let chart = null;
+        let yAxisAuto = true;
+        let yAxisMin = null;
+        let yAxisMax = null;
+
+        // Convert Excel formula to JavaScript evaluable expression
+        function convertExcelFormula(formula, vars, calcs) {
+            let jsFormula = formula.replace(/^=/, '');
+            
+            // Replace Excel functions
+            const functionMap = {
+                'INT': 'Math.floor',
+                'ABS': 'Math.abs',
+                'ROUND': 'Math.round',
+                'MIN': 'Math.min',
+                'MAX': 'Math.max',
+                'POWER': 'Math.pow',
+                'SQRT': 'Math.sqrt',
+                'LN': 'Math.log',
+                'LOG': 'Math.log10',
+                'EXP': 'Math.exp',
+            };
+            
+            Object.keys(functionMap).forEach(excelFunc => {
+                const regex = new RegExp(excelFunc + '\\(', 'gi');
+                jsFormula = jsFormula.replace(regex, functionMap[excelFunc] + '(');
+            });
+            
+            // Replace cell references with values
+            const cellPattern = /[A-Za-z]+(\d+)/g;
+            jsFormula = jsFormula.replace(cellPattern, (match, rowNum) => {
+                const row = parseInt(rowNum);
+                if (vars[row] !== undefined && vars[row] !== null) {
+                    return vars[row];
+                } else if (calcs[row] !== undefined && calcs[row] !== null) {
+                    return calcs[row];
+                }
+                return 0;
+            });
+            
+            return jsFormula;
+        }
+
+        // Evaluate formulas with dependencies
+        function evaluateFormulas(formulas, vars) {
+            const calculations = {};
+            const maxIterations = 10;
+            
+            for (let iteration = 0; iteration < maxIterations; iteration++) {
+                let changed = false;
+                
+                Object.keys(formulas).forEach(row => {
+                    if (calculations[row] === undefined) {
+                        const formula = formulas[row];
+                        const jsExpr = convertExcelFormula(formula, vars, calculations);
+                        
+                        // Check if still has unresolved references
+                        if (!/[A-Za-z]+\d+/.test(jsExpr)) {
+                            try {
+                                const result = eval(jsExpr);
+                                calculations[row] = result;
+                                changed = true;
+                            } catch (e) {
+                                console.error(`Error evaluating row ${row}:`, e);
+                            }
+                        }
+                    }
+                });
+                
+                if (!changed) break;
+            }
+            
+            return calculations;
+        }
+
+        // Parse Excel file
+        async function parseExcelFile(file) {
+            document.getElementById('processing').style.display = 'block';
+            
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, {
+                    cellFormulas: true,
+                    cellStyles: true,
+                    cellDates: true,
+                    cellNF: true,
+                    sheetStubs: true
+                });
+                
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                
+                variableNames = {};
+                variables = {};
+                variableMin = {};
+                variableMax = {};
+                calculationNames = {};
+                calculationFormulas = {};
+                independentIndex = null;
+                dependentIndex = null;
+                
+                let currentSection = null;
+                
+                for (let i = 0; i < jsonData.length; i++) {
+                    const excelRow = i + 1;
+                    const rowData = jsonData[i];
+                    const colA = rowData[0];
+                    
+                    // Check for section headers
+                    if (typeof colA === 'string') {
+                        const lower = colA.toLowerCase().trim();
+                        if (lower === 'variables') {
+                            currentSection = 'variables';
+                            continue;
+                        } else if (lower === 'calculations') {
+                            currentSection = 'calculations';
+                            continue;
+                        } else if (lower === 'graphs') {
+                            currentSection = 'graphs';
+                            continue;
+                        }
+                    }
+                    
+                    // Process based on section
+                    if (currentSection === 'variables') {
+                        if (colA && colA.toString().trim() !== '') {
+                            variableNames[excelRow] = colA.toString();
+                            variables[excelRow] = parseFloat(rowData[1]) || 0;
+                            variableMin[excelRow] = parseFloat(rowData[2]) || 0;
+                            variableMax[excelRow] = parseFloat(rowData[3]) || 100;
+                        }
+                    } else if (currentSection === 'calculations') {
+                        if (colA && colA.toString().trim() !== '') {
+                            calculationNames[excelRow] = colA.toString();
+                            
+                            // Get formula from worksheet
+                            const cellRef = `B${excelRow}`;
+                            const cell = worksheet[cellRef];
+                            if (cell) {
+                                if (cell.f) {
+                                    calculationFormulas[excelRow] = cell.f;
+                                } else if (typeof cell.v === 'string' && cell.v.startsWith('=')) {
+                                    calculationFormulas[excelRow] = cell.v.substring(1);
+                                } else {
+                                    calculationFormulas[excelRow] = cell.v?.toString() || '0';
+                                }
+                            }
+                        }
+                    } else if (currentSection === 'graphs') {
+                        if (independentIndex === null) {
+                            independentIndex = excelRow;
+                            variableNames[excelRow] = colA.toString();
+                            variables[excelRow] = parseFloat(rowData[2]) || 0;
+                            variableMin[excelRow] = parseFloat(rowData[2]) || 0;
+                            variableMax[excelRow] = parseFloat(rowData[3]) || 100;
+                        } else if (dependentIndex === null) {
+                            dependentIndex = excelRow;
+                            calculationNames[excelRow] = colA.toString();
+                            
+                            const cellRef = `B${excelRow}`;
+                            const cell = worksheet[cellRef];
+                            if (cell) {
+                                if (cell.f) {
+                                    calculationFormulas[excelRow] = cell.f;
+                                } else if (typeof cell.v === 'string' && cell.v.startsWith('=')) {
+                                    calculationFormulas[excelRow] = cell.v.substring(1);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                currentVariables = {...variables};
+                fileData = file.name;
+                
+                // Update UI
+                document.getElementById('file-name').textContent = file.name;
+                document.getElementById('file-info').style.display = 'flex';
+                document.getElementById('main-content').style.display = 'flex';
+                
+                createSliders();
+                updateInfoBoxes();
+                generateGraph();
+                
+            } catch (error) {
+                console.error('Error parsing file:', error);
+                alert('Error parsing Excel file. Please ensure it follows the correct template format.');
+            } finally {
+                document.getElementById('processing').style.display = 'none';
+            }
+        }
+
+        // Create slider controls
+        function createSliders() {
+            const container = document.getElementById('sliders-container');
+            container.innerHTML = '';
+            
+            Object.keys(variableNames).forEach(row => {
+                if (parseInt(row) !== independentIndex) {
+                    const sliderDiv = document.createElement('div');
+                    sliderDiv.className = 'slider-container';
+                    
+                    sliderDiv.innerHTML = `
+                        <div class="slider-label">
+                            <span>${variableNames[row]}</span>
+                            <span class="slider-value" id="value-${row}">${currentVariables[row].toFixed(2)}</span>
+                        </div>
+                        <input type="range" 
+                               id="slider-${row}"
+                               min="${variableMin[row] || 0}" 
+                               max="${variableMax[row] || 100}" 
+                               step="${((variableMax[row] - variableMin[row]) / 100)}"
+                               value="${currentVariables[row] || 0}">
+                        <div class="slider-limits">
+                            <span>${variableMin[row]}</span>
+                            <span>${variableMax[row]}</span>
+                        </div>
+                    `;
+                    
+                    container.appendChild(sliderDiv);
+                    
+                    // Add event listener
+                    document.getElementById(`slider-${row}`).addEventListener('input', function(e) {
+                        updateVariable(row, e.target.value);
+                    });
+                }
+            });
+        }
+
+        // Update info boxes
+        function updateInfoBoxes() {
+            if (independentIndex) {
+                document.getElementById('independent-info').style.display = 'block';
+                document.getElementById('independent-name').textContent = variableNames[independentIndex];
+                document.getElementById('independent-range').textContent = 
+                    `Range: ${variableMin[independentIndex]} - ${variableMax[independentIndex]}`;
+            }
+            
+            if (dependentIndex) {
+                document.getElementById('dependent-info').style.display = 'block';
+                document.getElementById('dependent-name').textContent = calculationNames[dependentIndex];
+            }
+        }
+
+        // Update variable value
+        function updateVariable(row, value) {
+            currentVariables[row] = parseFloat(value);
+            document.getElementById(`value-${row}`).textContent = parseFloat(value).toFixed(2);
+            generateGraph();
+        }
+
+        // Generate graph data
+        function generateGraph() {
+            if (!fileData || !independentIndex || !dependentIndex) return;
+            
+            const data = [];
+            const labels = [];
+            const chartData = [];  // Store full data for tooltips
+            const indMin = variableMin[independentIndex] || 0;
+            const indMax = variableMax[independentIndex] || 100;
+            const steps = 50;
+            const stepSize = (indMax - indMin) / steps;
+            
+            for (let i = 0; i <= steps; i++) {
+                const indValue = indMin + (i * stepSize);
+                
+                // Create variables object with current slider values and independent variable
+                const varsForCalc = { ...currentVariables };
+                varsForCalc[independentIndex] = indValue;
+                
+                // Evaluate all calculations
+                const calculations = evaluateFormulas(calculationFormulas, varsForCalc);
+                
+                labels.push(indValue.toFixed(2));
+                data.push(calculations[dependentIndex] || 0);
+                
+                // Store all calculation data for tooltips
+                chartData.push({
+                    x: indValue,
+                    y: calculations[dependentIndex] || 0,
+                    calculations: calculations
+                });
+            }
+            
+            // Create or update chart
+            const ctx = document.getElementById('chart').getContext('2d');
+            
+            // Determine Y-axis scale
+            let scaleOptions = {};
+            if (!yAxisAuto && yAxisMin !== null && yAxisMax !== null) {
+                scaleOptions = {
+                    min: yAxisMin,
+                    max: yAxisMax
+                };
+            }
+            
+            if (chart) {
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = data;
+                chart.data.datasets[0].chartData = chartData;  // Store full data
+                // Rebuild the entire y-axis configuration
+                chart.options.scales.y = {
+                    ...scaleOptions,
+                    title: {
+                        display: true,
+                        text: calculationNames[dependentIndex],
+                        color: '#374151',
+                        font: {
+                            size: 14,
+                            weight: '600'
+                        }
+                    },
+                    grid: {
+                        display: true,
+                        color: 'rgba(156, 163, 175, 0.4)',
+                        borderColor: '#9ca3af',
+                        drawTicks: true,
+                        lineWidth: 0.5
+                    },
+                    ticks: {
+                        color: '#6b7280'
+                    }
+                };
+                // Update x-axis title as well
+                chart.options.scales.x.title.text = variableNames[independentIndex];
+                chart.update();
+            } else {
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: calculationNames[dependentIndex],
+                            data: data,
+                            chartData: chartData,  // Store full data
+                            borderColor: 'rgb(102, 126, 234)',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(102, 126, 234)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverBackgroundColor: 'rgb(102, 126, 234)',
+                            pointHoverBorderColor: '#fff',
+                            pointHoverBorderWidth: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                titleColor: '#111827',
+                                bodyColor: '#374151',
+                                borderColor: '#e5e7eb',
+                                borderWidth: 1,
+                                padding: 12,
+                                displayColors: false,
+                                titleFont: {
+                                    size: 14,
+                                    weight: '600'
+                                },
+                                bodyFont: {
+                                    size: 13
+                                },
+                                callbacks: {
+                                    title: function(context) {
+                                        return 'Point Details';
+                                    },
+                                    label: function(context) {
+                                        return null;  // We'll use afterBody instead for custom formatting
+                                    },
+                                    afterBody: function(context) {
+                                        const dataIndex = context[0].dataIndex;
+                                        const fullData = context[0].dataset.chartData[dataIndex];
+                                        
+                                        let lines = [];
+                                        
+                                        // Primary values
+                                        lines.push(`${variableNames[independentIndex]}: ${fullData.x.toFixed(2)}`);
+                                        lines.push(`${calculationNames[dependentIndex]}: ${fullData.y.toFixed(2)}`);
+                                        
+                                        // Add separator
+                                        lines.push('');
+                                        lines.push('Intermediate Calculations:');
+                                        
+                                        // All calculations
+                                        Object.keys(calculationNames).forEach(row => {
+                                            if (calculationNames[row] && fullData.calculations[row] !== undefined) {
+                                                const value = fullData.calculations[row];
+                                                lines.push(`${calculationNames[row]}: ${typeof value === 'number' ? value.toFixed(2) : value}`);
+                                            }
+                                        });
+                                        
+                                        return lines;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: variableNames[independentIndex],
+                                    color: '#374151',
+                                    font: {
+                                        size: 14,
+                                        weight: '600'
+                                    }
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(156, 163, 175, 0.4)',
+                                    borderColor: '#9ca3af',
+                                    drawTicks: true,
+                                    lineWidth: 0.5
+                                },
+                                ticks: {
+                                    color: '#6b7280',
+                                    maxTicksLimit: 10
+                                }
+                            },
+                            y: {
+                                ...scaleOptions,
+                                title: {
+                                    display: true,
+                                    text: calculationNames[dependentIndex],
+                                    color: '#374151',
+                                    font: {
+                                        size: 14,
+                                        weight: '600'
+                                    }
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(156, 163, 175, 0.4)',
+                                    borderColor: '#9ca3af',
+                                    drawTicks: true,
+                                    lineWidth: 0.5
+                                },
+                                ticks: {
+                                    color: '#6b7280'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // File input handler
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    parseExcelFile(file);
+                } else {
+                    alert('Please upload an Excel file (.xlsx or .xls)');
+                }
+            }
+        });
+
+        // Y-axis controls event listeners
+        document.getElementById('y-axis-auto').addEventListener('change', function(e) {
+            yAxisAuto = e.target.checked;
+            const minInput = document.getElementById('y-axis-min');
+            const maxInput = document.getElementById('y-axis-max');
+            
+            if (yAxisAuto) {
+                minInput.disabled = true;
+                maxInput.disabled = true;
+                minInput.value = '';
+                maxInput.value = '';
+                yAxisMin = null;
+                yAxisMax = null;
+                // Force regeneration with automatic scaling
+                generateGraph();
+            } else {
+                minInput.disabled = false;
+                maxInput.disabled = false;
+                // Set default values based on current data if available
+                if (chart && chart.scales && chart.scales.y) {
+                    minInput.value = Math.floor(chart.scales.y.min);
+                    maxInput.value = Math.ceil(chart.scales.y.max);
+                    yAxisMin = parseFloat(minInput.value);
+                    yAxisMax = parseFloat(maxInput.value);
+                }
+                generateGraph();
+            }
+        });
+
+        document.getElementById('y-axis-min').addEventListener('input', function(e) {
+            yAxisMin = parseFloat(e.target.value);
+            if (!isNaN(yAxisMin)) {
+                generateGraph();
+            }
+        });
+
+        document.getElementById('y-axis-max').addEventListener('input', function(e) {
+            yAxisMax = parseFloat(e.target.value);
+            if (!isNaN(yAxisMax)) {
+                generateGraph();
+            }
+        });
+    </script>
+</body>
+</html>
